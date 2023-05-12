@@ -1,9 +1,8 @@
 import { useContext } from 'react'
 import React, { useState, useEffect } from 'react';
 import { AuthContext } from '../../contexts/auth'
-import Title from '../../components/Title'
+
 import './dashboard.css'
-import { FiPlus, FiMessageSquare, FiSearch, FiEdit2 } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -19,8 +18,13 @@ import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { InputText } from 'primereact/inputtext';
 import { InputMask } from 'primereact/inputmask';
 import { InputSwitch } from 'primereact/inputswitch';
+import { Dropdown } from 'primereact/dropdown';
+import { Calendar } from 'primereact/calendar';
+import { Slider } from 'primereact/slider';
+import { Tag } from 'primereact/tag';
+import { DateToString, StringToDate } from '../../ults/DateUtils';
 
-import ValidateCPF from '../../ults/ValidateCPF';
+
 
 import Header from '../../components/Header';
 
@@ -42,24 +46,9 @@ export default function Dashboard() {
     const [uf,setUf] = useState();
     const [complemento,setComplemento] = useState();
     const [genero,setGenero] = useState();
-
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-        nome: { value: null, matchMode: FilterMatchMode.CONTAINS },
-        data: { value: null, matchMode: FilterMatchMode.CONTAINS },
-        telefone: { value: null, matchMode: FilterMatchMode.CONTAINS },
-
-
-    });
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value;
-        let _filters = { ...filters };
-
-        _filters['global'].value = value;
-
-        setFilters(_filters);
-        setGlobalFilterValue(value);
-    };
+    const [customers, setCustomers] = useState(null);
+    const [filters, setFilters] = useState(null);
+    const [selectedCustomer, setSelectedCustomer] = useState({});
 
     useEffect(() => {
         async function getCustomers() {
@@ -70,7 +59,7 @@ export default function Dashboard() {
                     const customerData = {
                         'id': doc.id,
                         'nome': doc.data().nome,
-                        'data': doc.data().data,
+                        'data':  StringToDate(doc.data().data),
                         'telefone': doc.data().telefone,
                         'cpf': doc.data().cpf,
                         'cep': doc.data().cep,
@@ -90,6 +79,7 @@ export default function Dashboard() {
         }
 
         getCustomers();
+        initFilters();
     }, []);
 
     async function handleSearch(e) {
@@ -250,18 +240,99 @@ export default function Dashboard() {
             
         )
     }
+    const formatDate = (value) => {
+        return value.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
 
-    const renderHeader = () => {
+    const clearFilter = () => {
+        initFilters();
+    };
+
+    const onGlobalFilterChange = (e) => {
+        const value = e.target.value;
+        let _filters = { ...filters };
+        _filters["global"].value = value;
+
+        setFilters(_filters);
+        setGlobalFilterValue(value);
+    };
+
+    const initFilters = () => {
+        setFilters({
+            global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+            nome: {
+                operator: FilterOperator.AND,
+                constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
+            },
+            telefone: {
+                operator: FilterOperator.AND,
+                constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
+            },
+            data: {
+                operator: FilterOperator.AND,
+                label: '',
+                constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }]
+            },
+            
+        });
+        setGlobalFilterValue("");
+    };
+
+    const renderFilterHeader = () => {
         return (
-            <div className="flex justify-content-end">
+            <div className="flex justify-content-between">
+                <Button
+                    type="button"
+                    icon="pi pi-filter-slash"
+                    label="Limpar"
+                    className="p-button-outlined btn-secondary"
+                    onClick={clearFilter}
+                />
                 <span className="p-input-icon-left">
                     <i className="pi pi-search" />
-                    <InputText value={globalFilterValue} onChange={onGlobalFilterChange} placeholder="Keyword Search" />
+                    <InputText
+                        value={globalFilterValue}
+                        onChange={onGlobalFilterChange}
+                        placeholder="Pesquisa"
+                    />
                 </span>
             </div>
         );
     };
-    const header = renderHeader();
+
+    const dateBodyTemplate = (rowData) => {
+        return formatDate(rowData.data);
+    };
+
+    const dateFilterTemplate = (options) => {
+        return (
+            <Calendar
+                value={options.value}
+                onChange={(e) => options.filterCallback(e.value, options.index)}
+                dateFormat="dd/mm/yy"
+                placeholder="dd/mm/yyyy"
+                mask="99/99/9999"
+            />
+        );
+    };
+
+    const onRowSelect = (event) => {
+        setSelectedCustomer(event.data);
+    };
+
+    const header = renderFilterHeader();
+
+
+
+
+
+
+   
+
 
     return (
         <div>
@@ -271,23 +342,73 @@ export default function Dashboard() {
             <div className="content">
                 
                 
+                        <div className='flex flex-wrap justify-content-evenly my-5'>
+
+                        <InputText disabled='true' placeholder='Nome do Cliente' value={selectedCustomer != null ? selectedCustomer.nome : ''} />
+
+                        <InputText disabled='true' placeholder='Data de Nascimento' value={selectedCustomer != null ? DateToString(selectedCustomer.data) : ''} />
+                        
+                        <Button onClick={() => setVisible(true)} className='seila'> Add User </Button>
+                        </div>    
                     
-               
+                   
+                   
 
                 <div className="card">
-                <Button onClick={() => setVisible(true)} className='seila'> Add User </Button>
-                    <DataTable value={users} paginator rows={10} dataKey="id" filters={filters} filterDisplay="row"
-                    
-                        globalFilterFields={['nome','data','telefone']} header={header} emptyMessage=" Não existe usuario ">
-                        
-                        <Column field="nome" header="Nome" filter filterPlaceholder="Procurar pelo nome" style={{ minWidth: '12rem' }} />
-                        <Column field="data" header="Data" filter filterPlaceholder="Procurar por data" style={{ minWidth: '12rem' }} />
-                        <Column field="telefone" header="Telefone" filter filterPlaceholder="Procurar por telefone" style={{ minWidth: '12rem' }} />
-                        <Column header="action" body={buttons} />
-                        
-                        
-
-                    </DataTable>
+               
+                    <div className="card">
+                        <DataTable
+                            value={users}
+                            className="p-datatable-customers"
+                            paginator rows={5}
+                            rowsPerPageOptions={[3, 5, 10, 25, 50]}
+                            filters={filters}
+                            filterDisplay="menu"
+                            globalFilterFields={["nome", "data", "telefone"]}
+                            header={header}
+                            selectionMode="single"
+                            selection={selectedCustomer}
+                            onSelectionChange={(e) => setSelectedCustomer(e.value)}
+                            onRowSelect={onRowSelect}
+                            metaKeySelection={false}
+                            emptyMessage="Nenhum cliente encontrado."
+                            stripedRows
+                            removableSort
+                        >
+                            <Column
+                                header="Nome"
+                                field="nome"
+                                sortable
+                                filter
+                                filterPlaceholder="Pesquisar"
+                                style={{ minWidth: "10rem" }}
+                            />
+                            <Column
+                                header="Telefone"
+                                field="telefone"
+                                sortable
+                                filter
+                                filterPlaceholder="Pesquisar"
+                                style={{ minWidth: "10rem" }}
+                            />
+                            <Column
+                                header="Data de Nascimento"
+                                filterField="data"
+                                dataType="date"
+                                style={{ minWidth: "10rem" }}
+                                body={dateBodyTemplate}
+                                filter
+                                sortable
+                                field='data'
+                                filterElement={dateFilterTemplate}
+                            />
+                            
+                            <Column
+                                header="Ações"
+                                body={buttons}
+                            />
+                        </DataTable>
+                    </div>
                     
                 </div>
                 
@@ -301,16 +422,16 @@ export default function Dashboard() {
                             <input type="text" placeholder='Nome' value={nome} onChange={(e) => setNome(e.target.value)} ></input>
 
                             <label>Data de Nascimento</label>
-                            <input type="date" placeholder='' value={data} onChange={(e) => setData(e.target.value)}></input>
+                            <input type="text" placeholder='' value={data} onChange={(e) => setData(e.target.value)} mask="99/99/9999"></input>
 
                             <label>Telefone</label>
                             <InputMask value={telefone} mask="(99) 99999-9999" placeholder="Seu numero" onChange={(e) => setTelefone(e.target.value)}></InputMask>
 
                             <label>Gênero:</label>
                             <select  onChange={(e) => setGenero(e.target.value)} value={genero}>
-                            <option value="{masculino}" >Masculino</option>
-                            <option value="{feminino}" >Feminino</option>
-                            <option value="{outro}" >Outro</option>
+                            <option value="masculino" onChange={(e) => setGenero(e.target.value)} >Masculino</option>
+                            <option value="feminino" onChange={(e) => setGenero(e.target.value)} >Feminino</option>
+                            <option value="outro" onChange={(e) => setGenero(e.target.value)} >Outro</option>
                             </select>
 
 
