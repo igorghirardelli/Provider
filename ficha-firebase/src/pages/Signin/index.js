@@ -2,6 +2,7 @@ import {useState,useContext} from 'react' // use context para consumir os contex
 import './signin.css'
 //import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
+import { toast } from 'react-toastify'
 
 
 
@@ -13,6 +14,7 @@ export default  function Signin(){
 
         const [email,setEmail]  = useState('');
         const [password,setPassword] = useState('');
+        
 
         const { signIn, loadingAuth,signInWithGoogle } = useContext(AuthContext)
         
@@ -21,8 +23,14 @@ export default  function Signin(){
        
 
         if(email !== '' && password !== '' ){
+            
           await  signIn(email,password);
-        }
+          
+        } 
+        else {
+            toast.error("Preencha todos os campos!")
+        } 
+       
     }
     async function handleSignInWithGoogle() {
         await signInWithGoogle().catch((err) => {
@@ -54,6 +62,8 @@ export default  function Signin(){
                  value={password}
                  onChange={(e)=> setPassword(e.target.value) }
                 />
+
+                
 
                 
              <button type='submit'>

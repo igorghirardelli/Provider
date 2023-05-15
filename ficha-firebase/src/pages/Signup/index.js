@@ -6,11 +6,14 @@ import { Link } from 'react-router-dom'
 
 import {AuthContext} from '../../contexts/auth' 
 
+import { toast } from 'react-toastify'
+
 export default  function Sigunp(){
 
     const [name,setName] = useState('')
     const [email,setEmail]  = useState('');
     const [password,setPassword] = useState('');
+    const [confirmpassowrd,setConfirmpassword]  = useState ('');
 
     const {signup,loadingAuth} = useContext(AuthContext);
 
@@ -20,9 +23,18 @@ export default  function Sigunp(){
      async function handleSubmit(e){
         e.preventDefault();
 
-        if(name !== '' && email !== '' && password !== ''){
-         await   signup(email,password,name)
+        if(name !== '' && email !== '' && password !== ''  && confirmpassowrd !== '' ){
+           
+         await   signup(email,password,name,confirmpassowrd)
+
+        }   
+        else if (password !== confirmpassowrd){
+            toast.error("As senhas não são iguais");
+            return;
         }
+        else {
+            toast.error("Preencha todos os campos!")
+        } 
 
     }
 
@@ -57,6 +69,14 @@ return(
              value={password}
              onChange={(e)=> setPassword(e.target.value) }
             />
+
+                <input
+                 type='password'  
+                 placeholder='Confirmar sua senha' 
+                 value={confirmpassowrd}
+                 onChange={(e)=> setConfirmpassword(e.target.value) }
+                />
+
 
             
          <button type='submit'>

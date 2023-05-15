@@ -17,6 +17,26 @@ export const AuthContext = createContext({});
 
     const navigate = useNavigate();
 
+
+    useEffect(() => {
+      async function loadUser(){
+        const storageUser = localStorage.getItem('@fichaPRO')
+  
+        if(storageUser){
+          setUser(JSON.parse(storageUser))
+          setLoadingAuth(false);
+        }
+  
+  
+        setLoadingAuth(false);
+  
+      }
+  
+      loadUser();
+    }, [])
+
+
+
     async function signIn(email,password){
         
         setLoadingAuth(true);
@@ -75,10 +95,6 @@ export const AuthContext = createContext({});
         setLoadingAuth(false);
       })
   }
-
-
-
-    
 
 
     // Cadrastar um novo usuario

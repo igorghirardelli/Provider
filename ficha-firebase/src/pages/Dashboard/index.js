@@ -23,6 +23,8 @@ import { Calendar } from 'primereact/calendar';
 import { Slider } from 'primereact/slider';
 import { Tag } from 'primereact/tag';
 import { DateToString, StringToDate } from '../../ults/DateUtils';
+import *as Yup from 'yup'
+import CPF from 'cpf'
 
 
 
@@ -50,12 +52,15 @@ export default function Dashboard() {
     const [filters, setFilters] = useState(null);
     const [selectedCustomer, setSelectedCustomer] = useState({});
 
+    const [inputError, setInputError] = useState('')
+
     useEffect(() => {
         async function getCustomers() {
             // eslint-disable-next-line no-unused-vars
             const unsub = onSnapshot(collection(db, 'customers'), (snapshot) => {
                 let list = [];
                 snapshot.forEach((doc) => {
+                    
                     const customerData = {
                         'id': doc.id,
                         'nome': doc.data().nome,
@@ -107,12 +112,25 @@ export default function Dashboard() {
         }
     }
 
+   
+
+   
+
+
+    
+    
     async function handleRegister(e) {
         e.preventDefault();
 
-        if (id) {
-            const docRef = doc(db, "customers", id)
-            await updateDoc(docRef, {
+        const userSchema = Yup.object({
+            nome: Yup.string().min(3,"Nome deve ter sobrenome"),
+            data:Yup.date().min(new Date("1905-01-01"),"A data minima é 01/01/1905"),
+            cpf: Yup.string().test((cpf)=>CPF.isValid(cpf))
+        })
+        
+
+        try {
+            const user = await userSchema.validate({
                 nome: nome,
                 data: data,
                 telefone: telefone,
@@ -124,67 +142,74 @@ export default function Dashboard() {
                 uf:uf,
                 complemento:complemento,
                 genero:genero,
-
-            })
-                .then(() => {
-                    setEditando(false);
-                    setVisible(false);
-                    toast.success("Usuario editado");
-                })
-                .catch((error) => {
-                    setEditando(false);
-                    setVisible(false);
-                    toast.error("algo deu errado");
-                })
-        } else {
-            if (nome !== '' && data !== '' && telefone !== '' && cpf !== '' && cep !== '' && rua !== '' && bairro !== '' && localidade !== '' && uf !== '' ) {
-                await addDoc(collection(db, "customers"), {
-                    nome: nome,
-                    data: data,
-                    telefone: telefone,
-                    cpf: cpf,
-                    cep: cep,
-                    rua: rua,
-                    bairro:bairro,
-                    localidade:localidade,
-                    uf:uf,
-                    complemento:complemento,
-                    genero:genero,
-                })
+        })
+            if (id) {
+                const docRef = doc(db, "customers", id)
+                await updateDoc(docRef, user)          
                     .then(() => {
-                        setNome('');
-                        setData('');
-                        setTelefone('');
-                        setCpf('');
-                        setCep('');
-                        setRua('');
-                        setBairro('');
-                        setLocalidade('');
-                        setUf('');
-                        setComplemento('');
-                        setGenero('');
-                        setVisible(false); /// quando cadastrar fecha o dialog
-                        toast.success("Usuario registrado")
+    
+                        setEditando(false);
+                        setVisible(false);
+                        toast.success("Usuario editado");
                     })
                     .catch((error) => {
-                        setNome('');
-                        setData('');
-                        setTelefone('');
-                        setCpf('');
-                        setCep('');
-                        setRua('');
-                        setBairro('');
-                        setLocalidade('');
-                        setUf('');
-                        setComplemento('');
-                        setGenero('');
-                        console.log(error)
-                        toast.error("Erro ao fazer o cadastro")
+                        setEditando(false);
+                        setVisible(false);
+                        toast.error("algo deu errado");
                     })
             } else {
-                toast.error("Preencha todos os campos!")
+                if (nome !== '' && data !== '' && telefone !== '' && cpf !== '' && cep !== '' && rua !== '' && bairro !== '' && localidade !== '' && uf !== '' ) {
+                    await addDoc(collection(db, "customers"), {
+                        nome: nome,
+                        data: data,
+                        telefone: telefone,
+                        cpf: cpf,
+                        cep: cep,
+                        rua: rua,
+                        bairro:bairro,
+                        localidade:localidade,
+                        uf:uf,
+                        complemento:complemento,
+                        genero:genero,
+                    })
+                        .then(() => {
+                            setNome('');
+                            setData('');
+                            setTelefone('');
+                            setCpf('');
+                            setCep('');
+                            setRua('');
+                            setBairro('');
+                            setLocalidade('');
+                            setUf('');
+                            setComplemento('');
+                            setGenero('');
+                            setVisible(false); /// quando cadastrar fecha o dialog
+                            toast.success("Usuario registrado")
+                        })
+                        .catch((error) => {
+                            setNome('');
+                            setData('');
+                            setTelefone('');
+                            setCpf('');
+                            setCep('');
+                            setRua('');
+                            setBairro('');
+                            setLocalidade('');
+                            setUf('');
+                            setComplemento('');
+                            setGenero('');
+                            console.log(error)
+                            toast.error("Erro ao fazer o cadastro")
+                        })
+                } else {
+                    toast.error("Preencha todos os campos!")
+                }
             }
+        } catch (error) {
+            alert(error.message)
         }
+       
     }
 
     async function handleEdit(customer) {
@@ -221,9 +246,7 @@ export default function Dashboard() {
         setVisible(false);
     }
 
-    async function handleLogout() {
-        await logout();
-    }
+   
     async function deleteTarefa(id) {
         const docRef = doc(db, "customers", id)
         await deleteDoc(docRef);
@@ -344,6 +367,8 @@ export default function Dashboard() {
                 
                         <div className='flex flex-wrap justify-content-evenly my-5'>
 
+                        
+
                         <InputText disabled='true' placeholder='Nome do Cliente' value={selectedCustomer != null ? selectedCustomer.nome : ''} />
 
                         <InputText disabled='true' placeholder='Data de Nascimento' value={selectedCustomer != null ? DateToString(selectedCustomer.data) : ''} />
@@ -360,7 +385,7 @@ export default function Dashboard() {
                         <DataTable
                             value={users}
                             className="p-datatable-customers"
-                            paginator rows={5}
+                            paginator rows={10}
                             rowsPerPageOptions={[3, 5, 10, 25, 50]}
                             filters={filters}
                             filterDisplay="menu"
@@ -419,10 +444,10 @@ export default function Dashboard() {
                     <div className='container'>
                         <form className='form-profile'>
                             <label>Nome</label>
-                            <input type="text" placeholder='Nome' value={nome} onChange={(e) => setNome(e.target.value)} ></input>
+                            <input type="text" placeholder='Nome' value={nome} onChange={(e) => setNome(e.target.value)}  ></input>
 
                             <label>Data de Nascimento</label>
-                            <input type="text" placeholder='' value={data} onChange={(e) => setData(e.target.value)} mask="99/99/9999"></input>
+                            <input type="text" placeholder='' value={data} onChange={(e) => setData(e.target.value)} ></input>
 
                             <label>Telefone</label>
                             <InputMask value={telefone} mask="(99) 99999-9999" placeholder="Seu numero" onChange={(e) => setTelefone(e.target.value)}></InputMask>
@@ -436,7 +461,7 @@ export default function Dashboard() {
 
 
                             <label>CPF:</label>
-                            <InputMask type="text" placeholder='' mask="999.999.999-99" value={cpf} onChange={(e) => setCpf(e.target.value)}   ></InputMask>
+                            <InputMask type="text" placeholder='' mask="999.999.999-99" value={cpf} onChange={(e) => setCpf(e.target.value)}  ></InputMask>
 
                             <label>CEP:</label>
                             <input type="text" placeholder='' name='cep' value={cep} onChange={(e) => setCep(e.target.value)} onBlur={handleSearch} ></input>
