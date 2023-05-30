@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthContext } from '../../contexts/auth'
 
 import './dashboard.css'
-import { Link } from 'react-router-dom'
+//import { Link } from 'react-router-dom'
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Dialog } from 'primereact/dialog';
@@ -13,18 +13,16 @@ import "primereact/resources/primereact.min.css";
 import { db } from '../../services/firebaseConnection'
 import { addDoc, collection, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { toast } from 'react-toastify'
-import { FiUser } from 'react-icons/fi'
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { InputText } from 'primereact/inputtext';
 import { InputMask } from 'primereact/inputmask';
-import { InputSwitch } from 'primereact/inputswitch';
-import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { Slider } from 'primereact/slider';
 import { Tag } from 'primereact/tag';
-import { DateToString, StringToDate } from '../../ults/DateUtils';
+//import { DateToString, StringToDate } from '../../ults/DateUtils';
 import *as Yup from 'yup'
-import CPF from 'cpf'
+//import CPF from 'cpf'
+import { Toast } from 'primereact/toast';
 
 
 
@@ -52,7 +50,7 @@ export default function Dashboard() {
     const [filters, setFilters] = useState(null);
     const [selectedCustomer, setSelectedCustomer] = useState({});
 
-    const [inputError, setInputError] = useState('')
+    
 
     useEffect(() => {
         async function getCustomers() {
@@ -64,7 +62,7 @@ export default function Dashboard() {
                     const customerData = {
                         'id': doc.id,
                         'nome': doc.data().nome,
-                        'data':  StringToDate(doc.data().data),
+                        'data': doc.data().data,
                         'telefone': doc.data().telefone,
                         'cpf': doc.data().cpf,
                         'cep': doc.data().cep,
@@ -112,20 +110,16 @@ export default function Dashboard() {
         }
     }
 
-   
-
-   
-
-
     
     
     async function handleRegister(e) {
         e.preventDefault();
 
-        const userSchema = Yup.object({
-            nome: Yup.string().min(3,"Nome deve ter sobrenome"),
-            data:Yup.date().min(new Date("1905-01-01"),"A data minima é 01/01/1905"),
-            cpf: Yup.string().test((cpf)=>CPF.isValid(cpf))
+         const userSchema = Yup.object({
+            nome: Yup.string().min(5,"Nome deve ter sobrenome"),
+            //data:Yup.date().min(new Date("01-01-1905"),"A data minima é 01/01/1905"),
+            telefone: Yup.string().min(11,"O telefone deve ter 11 numeros"),
+            
         })
         
 
@@ -263,13 +257,7 @@ export default function Dashboard() {
             
         )
     }
-    const formatDate = (value) => {
-        return value.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    };
+    
 
     const clearFilter = () => {
         initFilters();
@@ -327,21 +315,31 @@ export default function Dashboard() {
         );
     };
 
-    const dateBodyTemplate = (rowData) => {
-        return formatDate(rowData.data);
-    };
+   // const formatDate = (value) => {
+        //return value.toLocaleDateString("pt-BR", {
+           // day: "2-digit",
+           // month: "2-digit",
+           // year: "numeric",
+       // });
+   //}
+   // const dateBodyTemplate = (rowData) => {
+      //  return formatDate(rowData.data);
+   // };
 
-    const dateFilterTemplate = (options) => {
-        return (
-            <Calendar
-                value={options.value}
-                onChange={(e) => options.filterCallback(e.value, options.index)}
-                dateFormat="dd/mm/yy"
-                placeholder="dd/mm/yyyy"
-                mask="99/99/9999"
-            />
-        );
-    };
+   
+
+   //const dateFilterTemplate = (options) => {
+        //return (
+          //  <Calendar
+              //  value={options.value}
+               // onChange={(e) => options.filterCallback(e.value, options.index)}
+               // dateFormat="dd/mm/yy"
+               // placeholder="dd/mm/yyyy"
+               // mask="99/99/9999"
+            ///>
+        //);
+    //};
+
 
     const onRowSelect = (event) => {
         setSelectedCustomer(event.data);
@@ -371,7 +369,7 @@ export default function Dashboard() {
 
                         <InputText disabled='true' placeholder='Nome do Cliente' value={selectedCustomer != null ? selectedCustomer.nome : ''} />
 
-                        <InputText disabled='true' placeholder='Data de Nascimento' value={selectedCustomer != null ? DateToString(selectedCustomer.data) : ''} />
+                        <InputText disabled='true' placeholder='Data de Nascimento' value={selectedCustomer != null?selectedCustomer.data : ''} />
                         
                         <Button onClick={() => setVisible(true)} className='seila'> Add User </Button>
                         </div>    
@@ -382,6 +380,7 @@ export default function Dashboard() {
                 <div className="card">
                
                     <div className="card">
+                    <Toast ref={toast} />
                         <DataTable
                             value={users}
                             className="p-datatable-customers"
@@ -416,17 +415,8 @@ export default function Dashboard() {
                                 filterPlaceholder="Pesquisar"
                                 style={{ minWidth: "10rem" }}
                             />
-                            <Column
-                                header="Data de Nascimento"
-                                filterField="data"
-                                dataType="date"
-                                style={{ minWidth: "10rem" }}
-                                body={dateBodyTemplate}
-                                filter
-                                sortable
-                                field='data'
-                                filterElement={dateFilterTemplate}
-                            />
+                            
+                            <Column field="data" header="Data" filter filterPlaceholder="Procurar por data" style={{ minWidth: '12rem' }} />
                             
                             <Column
                                 header="Ações"
@@ -447,7 +437,7 @@ export default function Dashboard() {
                             <input type="text" placeholder='Nome' value={nome} onChange={(e) => setNome(e.target.value)}  ></input>
 
                             <label>Data de Nascimento</label>
-                            <input type="text" placeholder='' value={data} onChange={(e) => setData(e.target.value)} ></input>
+                            <input type="date" placeholder='' value={data} onChange={(e) => setData(e.target.value)}></input>
 
                             <label>Telefone</label>
                             <InputMask value={telefone} mask="(99) 99999-9999" placeholder="Seu numero" onChange={(e) => setTelefone(e.target.value)}></InputMask>
